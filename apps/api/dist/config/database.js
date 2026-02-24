@@ -37,7 +37,7 @@ const shouldLog = () => {
 exports.AppDataSource = (isTesting && !process.env.DATABASE_URL_TEST) || (isProduction && !process.env.DATABASE_URL)
     ? new typeorm_1.DataSource({
         type: 'sqlite',
-        database: isTesting ? ':memory:' : './data/spad.db',
+        database: ':memory:',
         synchronize: true,
         logging: shouldLog(),
         entities: [User_1.User, Account_1.Account, Order_1.Order, Position_1.Position, LedgerEntry_1.LedgerEntry, Fee_1.Fee, Transfer_1.Transfer],

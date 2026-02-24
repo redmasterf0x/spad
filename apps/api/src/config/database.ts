@@ -34,7 +34,7 @@ const shouldLog = () => {
 export const AppDataSource = (isTesting && !process.env.DATABASE_URL_TEST) || (isProduction && !process.env.DATABASE_URL)
   ? new DataSource({
       type: 'sqlite',
-      database: isTesting ? ':memory:' : './data/spad.db',
+      database: ':memory:',
       synchronize: true,
       logging: shouldLog(),
       entities: [User, Account, Order, Position, LedgerEntry, Fee, Transfer],
