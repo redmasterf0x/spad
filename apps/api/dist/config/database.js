@@ -23,12 +23,21 @@ const isTesting = process.env.NODE_ENV === 'test';
 const databaseUrl = isTesting
     ? process.env.DATABASE_URL_TEST || 'sqlite::memory:'
     : process.env.DATABASE_URL || 'postgresql://spad_user:spad_pass@localhost:5432/spad_dev';
+const shouldLog = () => {
+    // allow explicit suppression during tests when verbose query output otherwise
+    // clutters the terminal. Set SUPPRESS_QUERY_LOGS=true in the environment to
+    // keep the database quiet. Otherwise fall back to existing LOG_LEVEL logic.
+    if (process.env.SUPPRESS_QUERY_LOGS === 'true') {
+        return false;
+    }
+    return process.env.LOG_LEVEL === 'debug';
+};
 exports.AppDataSource = isTesting && !process.env.DATABASE_URL_TEST
     ? new typeorm_1.DataSource({
         type: 'sqlite',
         database: ':memory:',
         synchronize: true,
-        logging: process.env.LOG_LEVEL === 'debug',
+        logging: shouldLog(),
         entities: [User_1.User, Account_1.Account, Order_1.Order, Position_1.Position, LedgerEntry_1.LedgerEntry, Fee_1.Fee, Transfer_1.Transfer],
         subscribers: [],
         migrations: [],
@@ -37,7 +46,7 @@ exports.AppDataSource = isTesting && !process.env.DATABASE_URL_TEST
         type: 'postgres',
         url: databaseUrl,
         synchronize: true, // Sync schema on startup (development only)
-        logging: process.env.LOG_LEVEL === 'debug',
+        logging: shouldLog(),
         entities: [User_1.User, Account_1.Account, Order_1.Order, Position_1.Position, LedgerEntry_1.LedgerEntry, Fee_1.Fee, Transfer_1.Transfer],
         subscribers: [],
         migrations: [],

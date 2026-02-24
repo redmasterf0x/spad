@@ -1,5 +1,6 @@
 import { LedgerEntry, EntryType } from '../entities/LedgerEntry';
 import Decimal from 'decimal.js';
+export { EntryType } from '../entities/LedgerEntry';
 export interface LedgerPostRequest {
     accountId: string;
     entryType: EntryType;
