@@ -1,3 +1,10 @@
+// Set test environment variables before any imports so that the database
+// module can configure itself correctly on load.
+process.env.NODE_ENV = 'test';
+if (!process.env.DATABASE_URL_TEST) {
+  process.env.DATABASE_URL_TEST = '';
+}
+
 import { AppDataSource } from '../src/config/database';
 import { User } from '../src/entities/User';
 import { Account } from '../src/entities/Account';
@@ -9,9 +16,7 @@ import { Transfer } from '../src/entities/Transfer';
 
 // Global test setup
 beforeAll(async () => {
-  process.env.NODE_ENV = 'test';
-  process.env.DATABASE_URL_TEST =
-    process.env.DATABASE_URL_TEST || 'postgresql://spad_user:spad_pass@localhost:5432/spad_test';
+  // NODE_ENV and DATABASE_URL_TEST are already set above
 
   try {
     if (!AppDataSource.isInitialized) {
@@ -43,6 +48,14 @@ export async function clearDatabase() {
 
 // Helper to truncate and reset sequences
 export async function resetDatabase() {
+  // For SQLite in-memory testing we can simply resynchronize the schema, which
+  // drops and re-creates all tables. For Postgres we run our existing TRUNCATE
+  // sequence.
+  if (AppDataSource.options.type === 'sqlite') {
+    await AppDataSource.synchronize(true);
+    return;
+  }
+
   const queryRunner = AppDataSource.createQueryRunner();
   await queryRunner.connect();
 

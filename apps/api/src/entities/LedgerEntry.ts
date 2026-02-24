@@ -1,6 +1,21 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm';
+
+const TS = process.env.NODE_ENV === 'test' ? 'datetime' : 'timestamp';
 import { Account } from './Account';
 import { Order } from './Order';
+
+// Types shared with services/tests
+export enum EntryType {
+  DEPOSIT = 'DEPOSIT',
+  WITHDRAWAL = 'WITHDRAWAL',
+  ORDER_EXECUTION = 'ORDER_EXECUTION',
+  FEE = 'FEE',
+  DIVIDEND = 'DIVIDEND',
+  INTEREST = 'INTEREST',
+  ADJUSTMENT = 'ADJUSTMENT',
+  TRANSFER = 'TRANSFER',
+  CORRECTION = 'CORRECTION',
+}
 
 @Entity('ledger_entries')
 @Index(['accountId'])
@@ -22,15 +37,7 @@ export class LedgerEntry {
     type: 'varchar',
     length: 50,
   })
-  entryType:
-    | 'ORDER_EXECUTION'
-    | 'FEE'
-    | 'DEPOSIT'
-    | 'WITHDRAWAL'
-    | 'DIVIDEND'
-    | 'INTEREST'
-    | 'ADJUSTMENT'
-    | 'TRANSFER';
+  entryType: EntryType;
 
   @Column('uuid', { nullable: true })
   orderId: string | null;
@@ -41,6 +48,10 @@ export class LedgerEntry {
 
   @Column('uuid', { nullable: true })
   transferId: string | null;
+
+  // Reconciliation information
+  @Column('uuid', { nullable: true })
+  reconciliationId: string | null;
 
   // Double Entry Accounting
   @Column('uuid', { nullable: true })
@@ -58,7 +69,7 @@ export class LedgerEntry {
   @Column({ type: 'varchar', length: 255 })
   description: string;
 
-  @Column({ type: 'jsonb', nullable: true })
+  @Column({ type: 'simple-json', nullable: true })
   metadata: {
     orderSymbol?: string;
     brokerOrderId?: string;
@@ -68,12 +79,12 @@ export class LedgerEntry {
     [key: string]: any;
   } | null;
 
-  @CreateDateColumn({ type: 'timestamp' })
+  @CreateDateColumn({ type: TS })
   createdAt: Date;
 
   @Column({ type: 'boolean', default: false })
   isReconciled: boolean;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: TS, nullable: true })
   reconciledAt: Date | null;
 }

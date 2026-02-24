@@ -1,4 +1,8 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToMany, JoinColumn, Index } from 'typeorm';
+import { DecimalTransformer } from '../utils/decimalTransformer';
+
+// timestamp type helper for sqlite tests
+const TS = process.env.NODE_ENV === 'test' ? 'datetime' : 'timestamp';
 import { User } from './User';
 import { Order } from './Order';
 import { Position } from './Position';
@@ -26,20 +30,24 @@ export class Account {
   accountType: 'TRADING' | 'DEMO';
 
   @Column({ type: 'varchar', length: 50, default: 'ACTIVE' })
-  accountStatus: 'ACTIVE' | 'CLOSED' | 'RESTRICTED';
+  // NOTE: 'SUSPENDED' added for compliance/account holds
+  accountStatus: 'ACTIVE' | 'CLOSED' | 'RESTRICTED' | 'SUSPENDED';
 
   @Column({ type: 'varchar', length: 3, default: 'USD' })
   currency: 'USD';
 
+  @Column({ type: 'varchar', nullable: true })
+  suspensionReason: string | null;
+
   // Balances (stored as DECIMAL for precision)
-  @Column({ type: 'numeric', precision: 15, scale: 2, default: 0 })
+  @Column({ type: 'numeric', precision: 15, scale: 2, default: 0, transformer: DecimalTransformer })
   cashBalance: Decimal;
 
-  @Column({ type: 'numeric', precision: 15, scale: 2, default: 0 })
+  @Column({ type: 'numeric', precision: 15, scale: 2, default: 0, transformer: DecimalTransformer })
   reservedBalance: Decimal;
 
   // Margin (always 0 in MVP)
-  @Column({ type: 'numeric', precision: 15, scale: 2, default: 0 })
+  @Column({ type: 'numeric', precision: 15, scale: 2, default: 0, transformer: DecimalTransformer })
   marginAvailable: Decimal;
 
   // Reconciliation IDs
@@ -49,23 +57,23 @@ export class Account {
   @Column({ type: 'varchar', nullable: true })
   evolveAccountId: string | null;
 
-  @CreateDateColumn({ type: 'timestamp' })
+  @CreateDateColumn({ type: TS })
   createdAt: Date;
 
-  @UpdateDateColumn({ type: 'timestamp' })
+  @UpdateDateColumn({ type: TS })
   updatedAt: Date;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: TS, nullable: true })
   closedAt: Date | null;
 
   // Computed fields
-  @Column({ type: 'numeric', precision: 15, scale: 2, default: 0 })
+  @Column({ type: 'numeric', precision: 15, scale: 2, default: 0, transformer: DecimalTransformer })
   totalPositionsValue: Decimal;
 
-  @Column({ type: 'numeric', precision: 15, scale: 2, default: 0 })
+  @Column({ type: 'numeric', precision: 15, scale: 2, default: 0, transformer: DecimalTransformer })
   totalPl: Decimal;
 
-  @Column({ type: 'numeric', precision: 15, scale: 2, default: 0 })
+  @Column({ type: 'numeric', precision: 15, scale: 2, default: 0, transformer: DecimalTransformer })
   equity: Decimal;
 
   // Relationships
@@ -85,8 +93,12 @@ export class Account {
   transfers: Transfer[];
 
   // Helper methods
+  // Convert values to Decimal in case the ORM returned plain numbers (e.g.
+  // when running against SQLite in tests).
   getAvailableBalance(): Decimal {
-    return this.cashBalance.minus(this.reservedBalance);
+    const cash = new Decimal(this.cashBalance as any);
+    const reserved = new Decimal(this.reservedBalance as any);
+    return cash.minus(reserved);
   }
 
   getBuyingPower(): Decimal {

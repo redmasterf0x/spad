@@ -3,7 +3,7 @@ import { Order } from '../entities/Order';
 import { Account } from '../entities/Account';
 import { Position } from '../entities/Position';
 import { Fee } from '../entities/Fee';
-import { LedgerEntry } from '../entities/LedgerEntry';
+import { LedgerEntry, EntryType } from '../entities/LedgerEntry';
 import Decimal from 'decimal.js';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -99,7 +99,6 @@ export class OrderService {
     // Create order
     const order = this.orderRepository.create({
       accountId,
-      account,
       symbol,
       assetType,
       side,
@@ -135,7 +134,8 @@ export class OrderService {
     } catch (err) {
       // If broker API fails, mark order as REJECTED
       savedOrder.status = 'REJECTED';
-      savedOrder.rejectReason = `Broker API error: ${(err as Error).message}`;
+      // property was named differently on the entity
+      savedOrder.rejectionReason = `Broker API error: ${(err as Error).message}`;
       await this.orderRepository.save(savedOrder);
       throw err;
     }
@@ -150,9 +150,7 @@ export class OrderService {
     // Create fee record
     const fee = this.feeRepository.create({
       orderId: savedOrder.id,
-      order: savedOrder,
       accountId,
-      account,
       feeCategory: 'TRADING_COMMISSION',
       feeType: 'COMMISSION',
       customerRate: 0.005,
@@ -244,16 +242,16 @@ export class OrderService {
 
     if (order.side === 'BUY') {
       // Update average open price (weighted average)
-      const totalValue = position.quantity.times(position.averageOpenPrice).plus(totalCost);
+      const totalValue = position.quantity.times(new Decimal(position.averageOpenPrice || 0)).plus(totalCost);
       const newQuantity = position.quantity.plus(filledQuantity);
-      position.averageOpenPrice = totalValue.dividedBy(newQuantity).toNumber();
+      position.averageOpenPrice = totalValue.dividedBy(newQuantity);
       position.quantity = newQuantity;
     } else {
       // SELL
       position.quantity = position.quantity.minus(filledQuantity);
     }
 
-    position.currentValue = position.quantity.times(filledPrice);
+    position.currentValue = position.quantity.times(new Decimal(filledPrice));
 
     const updatedPosition = await this.positionRepository.save(position);
 
@@ -263,7 +261,7 @@ export class OrderService {
       account,
       orderId: savedOrder.id,
       order: savedOrder,
-      entryType: 'ORDER_EXECUTION',
+      entryType: EntryType.ORDER_EXECUTION,
       amount: totalCost.toNumber(),
       currency: 'USD',
       description: `${order.side} ${filledQuantity} ${order.symbol} @ ${filledPrice}`,

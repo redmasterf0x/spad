@@ -41,11 +41,16 @@ export class User {
   @Column({ type: 'varchar', nullable: true })
   personaInquiryId: string | null;
 
-  @Column({ type: 'timestamp', nullable: true })
+  // timestamps use sqlite-compatible type when running tests
+  private static readonly TS = process.env.NODE_ENV === 'test' ? 'datetime' : 'timestamp';
+
+  @Column({ type: User.TS, nullable: true })
   kycVerifiedAt: Date | null;
 
   // KYC Data (encrypted in production)
-  @Column({ type: 'jsonb', nullable: true })
+  // SQLite doesn't support jsonb; using simple-json gives us cross-database
+  // compatibility during tests. Postgres still stores JSON text (no indexing)
+  @Column({ type: 'simple-json', nullable: true })
   kycData: {
     givenName?: string;
     familyName?: string;
@@ -72,16 +77,16 @@ export class User {
   @Column({ type: 'varchar', nullable: true })
   suspensionReason: string | null;
 
-  @CreateDateColumn({ type: 'timestamp' })
+  @CreateDateColumn({ type: User.TS })
   createdAt: Date;
 
-  @UpdateDateColumn({ type: 'timestamp' })
+  @UpdateDateColumn({ type: User.TS })
   updatedAt: Date;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: User.TS, nullable: true })
   deletedAt: Date | null;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: User.TS, nullable: true })
   lastLoginAt: Date | null;
 
   // Relationships

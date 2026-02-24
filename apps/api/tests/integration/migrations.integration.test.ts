@@ -3,7 +3,7 @@ import { User } from '../../src/entities/User';
 import { Account } from '../../src/entities/Account';
 import { Order } from '../../src/entities/Order';
 import { Position } from '../../src/entities/Position';
-import { LedgerEntry } from '../../src/entities/LedgerEntry';
+import { LedgerEntry, EntryType } from '../../src/entities/LedgerEntry';
 import { Fee } from '../../src/entities/Fee';
 import { Transfer } from '../../src/entities/Transfer';
 import { testUsers, testAccounts, testOrders } from '../fixtures/users';
@@ -309,7 +309,7 @@ describe('Database Migrations and Schema', () => {
       const entry = ledgerRepo.create({
         accountId: savedAccount.id,
         account: savedAccount,
-        entryType: 'DEPOSIT',
+        entryType: EntryType.DEPOSIT,
         amount: 5000,
         currency: 'USD',
         description: 'ACH deposit from bank',
@@ -366,7 +366,7 @@ describe('Database Migrations and Schema', () => {
         account: savedAccount,
         orderId: savedOrder.id,
         order: savedOrder,
-        entryType: 'ORDER_EXECUTION',
+        entryType: EntryType.ORDER_EXECUTION,
         amount: 600,
         currency: 'USD',
         description: 'AAPL order purchase',

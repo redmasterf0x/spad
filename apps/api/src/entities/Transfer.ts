@@ -1,4 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm';
+
+const TS = process.env.NODE_ENV === 'test' ? 'datetime' : 'timestamp';
 import { Account } from './Account';
 
 @Entity('transfers')
@@ -50,13 +52,13 @@ export class Transfer {
   @Column({ type: 'varchar', nullable: true })
   accountHolderName: string | null;
 
-  @CreateDateColumn({ type: 'timestamp' })
+  @CreateDateColumn({ type: TS })
   createdAt: Date;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: TS, nullable: true })
   processingStartedAt: Date | null;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: TS, nullable: true })
   completedAt: Date | null;
 
   @Column({ type: 'date', nullable: true })

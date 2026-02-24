@@ -1,4 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToMany, JoinColumn, Index } from 'typeorm';
+import { DecimalTransformer } from '../utils/decimalTransformer';
+
+const TS = process.env.NODE_ENV === 'test' ? 'datetime' : 'timestamp';
 import { Account } from './Account';
 import { LedgerEntry } from './LedgerEntry';
 import { Fee } from './Fee';
@@ -28,7 +31,7 @@ export class Order {
   assetType: 'OPTION' | 'FUTURE';
 
   // For options: expiry_date, strike_price, contract_type
-  @Column({ type: 'jsonb', nullable: true })
+  @Column({ type: 'simple-json', nullable: true })
   optionDetails: {
     expiryDate: string;
     strikePrice: number;
@@ -36,20 +39,29 @@ export class Order {
     multiplier: number;
   } | null;
 
+  // For futures the only additional information we currently need is the expiry
+  // date and the exchange contract code. This field mirrors the structure used in
+  // SubmitOrderRequest and BrokerService.
+  @Column({ type: 'simple-json', nullable: true })
+  futureDetails: {
+    expiryDate: string;
+    contractCode: string;
+  } | null;
+
   // Order Params
   @Column({ type: 'varchar', length: 10 })
   side: 'BUY' | 'SELL';
 
-  @Column({ type: 'numeric', precision: 10, scale: 2 })
+  @Column({ type: 'numeric', precision: 10, scale: 2, transformer: DecimalTransformer })
   quantity: number;
 
   @Column({ type: 'varchar', length: 20 })
   orderType: 'MARKET' | 'LIMIT' | 'STOP' | 'STOP_LIMIT';
 
-  @Column({ type: 'numeric', precision: 12, scale: 4, nullable: true })
+  @Column({ type: 'numeric', precision: 12, scale: 4, nullable: true, transformer: DecimalTransformer })
   price: number | null;
 
-  @Column({ type: 'numeric', precision: 12, scale: 4, nullable: true })
+  @Column({ type: 'numeric', precision: 12, scale: 4, nullable: true, transformer: DecimalTransformer })
   stopPrice: number | null;
 
   @Column({ type: 'varchar', length: 10, default: 'DAY' })
@@ -67,10 +79,10 @@ export class Order {
     | 'EXPIRED';
 
   // Fills
-  @Column({ type: 'numeric', precision: 10, scale: 2, default: 0 })
+  @Column({ type: 'numeric', precision: 10, scale: 2, default: 0, transformer: DecimalTransformer })
   filledQuantity: number;
 
-  @Column({ type: 'numeric', precision: 12, scale: 4, nullable: true })
+  @Column({ type: 'numeric', precision: 12, scale: 4, nullable: true, transformer: DecimalTransformer })
   filledPrice: number | null;
 
   // Partner Broker Integration
@@ -84,10 +96,10 @@ export class Order {
   partnerRejectionReason: string | null;
 
   // Fees
-  @Column({ type: 'numeric', precision: 5, scale: 4, default: 0.005 })
+  @Column({ type: 'numeric', precision: 5, scale: 4, default: 0.005, transformer: DecimalTransformer })
   feeRate: number;
 
-  @Column({ type: 'numeric', precision: 12, scale: 2, default: 0 })
+  @Column({ type: 'numeric', precision: 12, scale: 2, default: 0, transformer: DecimalTransformer })
   feeAmount: number;
 
   @Column({ type: 'varchar', length: 50, default: 'COMMISSION' })
@@ -97,19 +109,19 @@ export class Order {
   @Column({ type: 'varchar', unique: true, nullable: true })
   idempotencyKey: string | null;
 
-  @CreateDateColumn({ type: 'timestamp' })
+  @CreateDateColumn({ type: TS })
   createdAt: Date;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: TS, nullable: true })
   submittedToBrokerAt: Date | null;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: TS, nullable: true })
   filledAt: Date | null;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: TS, nullable: true })
   cancelledAt: Date | null;
 
-  @UpdateDateColumn({ type: 'timestamp' })
+  @UpdateDateColumn({ type: TS })
   updatedAt: Date;
 
   @Column({ type: 'varchar', nullable: true })

@@ -83,11 +83,16 @@ export function verifyToken(token: string): TokenPayload {
 export function isTokenExpired(token: string): boolean {
   try {
     const decoded = jwt.decode(token, { complete: true });
-    if (!decoded || !decoded.payload.exp) {
+    if (!decoded || typeof decoded.payload === 'string') {
       return true;
     }
 
-    const expiryTime = decoded.payload.exp * 1000; // Convert to milliseconds
+    const payload = decoded.payload as any;
+    if (!payload.exp) {
+      return true;
+    }
+
+    const expiryTime = payload.exp * 1000; // Convert to milliseconds
     return Date.now() >= expiryTime;
   } catch {
     return true;

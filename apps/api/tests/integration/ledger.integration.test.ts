@@ -6,6 +6,7 @@ import { User } from '../../src/entities/User';
 import { Account } from '../../src/entities/Account';
 import { Order } from '../../src/entities/Order';
 import { LedgerEntry } from '../../src/entities/LedgerEntry';
+import { Fee } from '../../src/entities/Fee';
 import Decimal from 'decimal.js';
 
 describe('Step 4: Ledger and Fee Services', () => {
@@ -363,7 +364,7 @@ describe('Step 4: Ledger and Fee Services', () => {
 
       const entries = await ledgerRepository.find({ where: { id: entryIds as any } });
 
-      entries.forEach((entry) => {
+      entries.forEach((entry: LedgerEntry) => {
         expect(entry.isReconciled).toBe(true);
         expect(entry.reconciliationId).toBe('REC_202501_001');
         expect(entry.reconciledAt).toBeDefined();
