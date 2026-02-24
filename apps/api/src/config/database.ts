@@ -11,13 +11,15 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const isTesting = process.env.NODE_ENV === 'test';
+const isProduction = process.env.NODE_ENV === 'production';
 
 // Default to PostgreSQL for normal runs. For tests, allow override via
 // DATABASE_URL_TEST; if that variable is unset we switch to an in-memory SQLite
 // database so CI/workspaces can run without a Postgres server.
+// On production without DATABASE_URL, use file-based SQLite as fallback.
 const databaseUrl = isTesting
   ? process.env.DATABASE_URL_TEST || 'sqlite::memory:'
-  : process.env.DATABASE_URL || 'postgresql://spad_user:spad_pass@localhost:5432/spad_dev';
+  : process.env.DATABASE_URL || (isProduction ? 'sqlite:./data/spad.db' : 'postgresql://spad_user:spad_pass@localhost:5432/spad_dev');
 
 const shouldLog = () => {
   // allow explicit suppression during tests when verbose query output otherwise
@@ -29,10 +31,10 @@ const shouldLog = () => {
   return process.env.LOG_LEVEL === 'debug';
 };
 
-export const AppDataSource = isTesting && !process.env.DATABASE_URL_TEST
+export const AppDataSource = (isTesting && !process.env.DATABASE_URL_TEST) || (isProduction && !process.env.DATABASE_URL)
   ? new DataSource({
       type: 'sqlite',
-      database: ':memory:',
+      database: isTesting ? ':memory:' : './data/spad.db',
       synchronize: true,
       logging: shouldLog(),
       entities: [User, Account, Order, Position, LedgerEntry, Fee, Transfer],

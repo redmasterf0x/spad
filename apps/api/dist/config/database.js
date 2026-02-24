@@ -17,12 +17,14 @@ const Transfer_1 = require("../entities/Transfer");
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 const isTesting = process.env.NODE_ENV === 'test';
+const isProduction = process.env.NODE_ENV === 'production';
 // Default to PostgreSQL for normal runs. For tests, allow override via
 // DATABASE_URL_TEST; if that variable is unset we switch to an in-memory SQLite
 // database so CI/workspaces can run without a Postgres server.
+// On production without DATABASE_URL, use file-based SQLite as fallback.
 const databaseUrl = isTesting
     ? process.env.DATABASE_URL_TEST || 'sqlite::memory:'
-    : process.env.DATABASE_URL || 'postgresql://spad_user:spad_pass@localhost:5432/spad_dev';
+    : process.env.DATABASE_URL || (isProduction ? 'sqlite:./data/spad.db' : 'postgresql://spad_user:spad_pass@localhost:5432/spad_dev');
 const shouldLog = () => {
     // allow explicit suppression during tests when verbose query output otherwise
     // clutters the terminal. Set SUPPRESS_QUERY_LOGS=true in the environment to
@@ -32,10 +34,10 @@ const shouldLog = () => {
     }
     return process.env.LOG_LEVEL === 'debug';
 };
-exports.AppDataSource = isTesting && !process.env.DATABASE_URL_TEST
+exports.AppDataSource = (isTesting && !process.env.DATABASE_URL_TEST) || (isProduction && !process.env.DATABASE_URL)
     ? new typeorm_1.DataSource({
         type: 'sqlite',
-        database: ':memory:',
+        database: isTesting ? ':memory:' : './data/spad.db',
         synchronize: true,
         logging: shouldLog(),
         entities: [User_1.User, Account_1.Account, Order_1.Order, Position_1.Position, LedgerEntry_1.LedgerEntry, Fee_1.Fee, Transfer_1.Transfer],
