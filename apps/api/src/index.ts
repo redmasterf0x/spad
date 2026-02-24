@@ -1,5 +1,6 @@
 import express, { Express, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
+import path from 'path';
 import { AppDataSource } from './config/database';
 import authRouter from './controllers/AuthController';
 
@@ -10,6 +11,12 @@ const app: Express = express();
  */
 app.use(cors());
 app.use(express.json());
+
+/**
+ * Serve static files from web app
+ */
+const webBuildPath = path.join(__dirname, '../../web/dist');
+app.use(express.static(webBuildPath));
 
 /**
  * Error handling middleware
@@ -45,10 +52,15 @@ app.get('/health', (req: Request, res: Response) => {
 });
 
 /**
- * 404 handler
+ * Serve web app for non-API routes (client-side routing)
  */
-app.use((req: Request, res: Response) => {
-  res.status(404).json({ error: 'Not found' });
+app.get('*', (req: Request, res: Response) => {
+  const indexPath = path.join(webBuildPath, 'index.html');
+  res.sendFile(indexPath, (err) => {
+    if (err) {
+      res.status(404).json({ error: 'Not found' });
+    }
+  });
 });
 
 /**

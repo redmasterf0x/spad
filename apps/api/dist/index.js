@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
+const path_1 = __importDefault(require("path"));
 const database_1 = require("./config/database");
 const AuthController_1 = __importDefault(require("./controllers/AuthController"));
 const app = (0, express_1.default)();
@@ -13,6 +14,11 @@ const app = (0, express_1.default)();
  */
 app.use((0, cors_1.default)());
 app.use(express_1.default.json());
+/**
+ * Serve static files from web app
+ */
+const webBuildPath = path_1.default.join(__dirname, '../../web/dist');
+app.use(express_1.default.static(webBuildPath));
 /**
  * Error handling middleware
  */
@@ -40,10 +46,15 @@ app.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 /**
- * 404 handler
+ * Serve web app for non-API routes (client-side routing)
  */
-app.use((req, res) => {
-    res.status(404).json({ error: 'Not found' });
+app.get('*', (req, res) => {
+    const indexPath = path_1.default.join(webBuildPath, 'index.html');
+    res.sendFile(indexPath, (err) => {
+        if (err) {
+            res.status(404).json({ error: 'Not found' });
+        }
+    });
 });
 /**
  * Start server
